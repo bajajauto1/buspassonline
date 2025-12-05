@@ -63,6 +63,7 @@
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-bold">Admin Dashboard</h2>
       <div class="flex gap-2">
+        <button id="exportCsvBtn" class="bg-yellow-600 text-white px-3 py-2 rounded">Export CSV</button>
         <button id="btnSignOut" class="bg-red-600 text-white px-3 py-2 rounded">Sign out</button>
       </div>
     </div>
@@ -387,6 +388,34 @@
     function escapeAttr(s){ if(!s) return ""; return s.toString().replaceAll('"','&quot;'); }
 
     onAuthStateChanged(auth,user=>{ if(user){ showPageKey("adminPanel"); loadEmployeeTable(); } });
+    // ---------------- EXPORT CSV BUTTON ----------------
+document.getElementById("exportCsvBtn").addEventListener("click", async () => {
+  const empRef = ref(db, "employees");
+  const snap = await get(empRef);
+
+  if (!snap.exists()) {
+    alert("No employee data found!");
+    return;
+  }
+
+  let csv = "Code,Name,Dept,Route,Stop,Password,Link\n";
+
+  snap.forEach(child => {
+    const e = child.val();
+    csv += `"${e.code || ""}","${e.name || ""}","${e.dept || ""}","${e.route || ""}","${e.stop || ""}","${e.password || ""}","${e.link || ""}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "employees.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+});
+
   </script>
 </body>
 </html>
