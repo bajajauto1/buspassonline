@@ -3,166 +3,177 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Online Bus Pass System - Single File (Firebase Auth)</title>
+  <title>Bajaj Auto - Bus Pass Portal</title>
 
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- html2canvas to capture pass as PNG -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
-  <!-- XLSX Library for Excel parsing -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
-    .page { display: none; }
+    body { font-family: 'Inter', sans-serif; }
+    .page { display: none; transition: all 0.3s ease; }
     .page.active { display: block; }
+    
+    /* PRESERVED PASS FORMATTING */
     .pass-label { font-weight: 600; }
     .pass-value { margin-left: 6px; }
-    .pass-border { border: 3px dotted #000; padding: 10px; }
+    .pass-border { border: 3px dotted #000; padding: 15px; background: white; width: 100%; max-width: 350px; margin: 0 auto; }
+    
+    /* Modern UI Elements */
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+    .nav-btn.active { border-bottom: 3px solid #1d4ed8; color: #1d4ed8; font-weight: bold; }
+    input { transition: all 0.2s; border: 1px solid #e2e8f0; }
+    input:focus { border-color: #3b82f6; ring: 2px; ring-color: #bfdbfe; outline: none; }
   </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-slate-50 text-slate-800 min-h-screen">
 
-  <!-- HEADER -->
-  <div class="bg-blue-700 text-white p-4 text-center text-xl font-bold">
-    BAJAJ AUTO CHAKAN - 1 BUS PASS DOWNLOAD
-  </div>
-
-  <!-- NAV SWITCH -->
-  <div class="flex justify-center gap-4 p-4">
-    <button id="navUser" class="bg-gray-800 text-white px-4 py-2 rounded">User Login</button>
-    <button id="navAdmin" class="bg-blue-700 text-white px-4 py-2 rounded">Admin Login</button>
-  </div>
-
-  <!-- ========== USER LOGIN PAGE ========== -->
-  <div id="userLoginPage" class="page active p-6">
-    <div class="max-w-md mx-auto bg-white p-6 shadow rounded">
-      <h2 class="text-lg font-bold mb-3">Employee Login</h2>
-      <input id="userCode" class="border p-2 w-full mb-3" placeholder="Employee Code" />
-      <input id="userPass" class="border p-2 w-full mb-3" placeholder="Password" type="password" />
-      <button id="btnUserLogin" class="bg-blue-600 text-white w-full py-2 rounded">Login</button>
-      <p id="userLoginMsg" class="text-sm text-red-600 mt-2"></p>
+  <header class="bg-blue-800 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col items-center">
+      <h1 class="text-lg md:text-xl font-bold tracking-tight">BAJAJ AUTO CHAKAN-1</h1>
+      <p class="text-xs text-blue-200 uppercase tracking-widest">Bus Pass Management System</p>
     </div>
-  </div>
+  </header>
 
-  <!-- ========== ADMIN LOGIN PAGE ========== -->
-  <div id="adminLoginPage" class="page p-6">
-    <div class="max-w-md mx-auto bg-white p-6 shadow rounded">
-      <h2 class="text-lg font-bold mb-3">Admin Login (Firebase Auth)</h2>
-      <input id="adminEmail" class="border p-2 w-full mb-3" placeholder="Admin email" type="email" />
-      <input id="adminPassword" class="border p-2 w-full mb-3" placeholder="Password" type="password" />
-      <button id="btnAdminLogin" class="bg-green-600 text-white w-full py-2 rounded">Sign in</button>
-      <p id="adminLoginMsg" class="text-sm text-red-600 mt-2"></p>
-      <p class="text-sm text-gray-600 mt-3">Create the admin account in Firebase Console → Authentication → Add user.</p>
+  <nav class="bg-white border-b sticky top-[68px] z-40 shadow-sm">
+    <div class="flex justify-center max-w-md mx-auto">
+      <button id="navUser" class="nav-btn active flex-1 py-3 text-sm font-medium">Employee Login</button>
+      <button id="navAdmin" class="nav-btn flex-1 py-3 text-sm font-medium border-l">Admin Access</button>
     </div>
-  </div>
+  </nav>
 
-  <!-- ========== ADMIN PANEL ========== -->
-  <div id="adminPanel" class="page p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-bold">Admin Dashboard</h2>
-      <div class="flex gap-2">
-        <button id="btnSignOut" class="bg-red-600 text-white px-3 py-2 rounded">Sign out</button>
-      </div>
-    </div>
-
-    <div class="bg-white p-5 rounded shadow mb-6">
-      <h3 class="text-lg font-bold mb-3">Add Employee</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input id="empCode" placeholder="Employee Code" class="border p-2" />
-        <input id="empName" placeholder="Employee Name" class="border p-2" />
-        <input id="empDept" placeholder="Department" class="border p-2" />
-        <input id="empRoute" placeholder="Bus Route" class="border p-2" />
-        <input id="empStop" placeholder="Bus Stop" class="border p-2" />
-        <input id="empPassword" placeholder="Password (for employee login)" class="border p-2" type="password" />
-        <input id="empLink" placeholder="Optional: Pass Image/Download Link (public URL)" class="border p-2 md:col-span-2" />
-      </div>
-      <div class="mt-3">
-        <button id="saveBtn" class="bg-blue-700 text-white px-4 py-2 rounded">Save</button>
-        <button id="clearBtn" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded">Clear</button>
-        <button id="refreshBtn" class="ml-2 bg-green-500 text-white px-4 py-2 rounded">Refresh Table</button>
-      </div>
-      <p id="saveMsg" class="text-sm text-green-700 mt-2"></p>
-    </div>
-
-    <!-- ========== BULK EXCEL UPLOAD ========== -->
-    <div class="bg-white p-5 rounded shadow mb-6">
-      <h3 class="text-lg font-bold mb-3">Bulk Upload (Excel)</h3>
-      <p class="text-sm mb-3 text-gray-700">
-        Upload .xlsx file containing columns (case-insensitive): <b>code, name, dept, route, stop, password, link</b>
-      </p>
-
-      <input type="file" id="excelFile" accept=".xlsx" class="border p-2 w-full mb-3" />
-      <button id="uploadExcelBtn" class="bg-purple-700 text-white px-4 py-2 rounded">Upload Excel File</button>
-      <div id="excelStatus" class="mt-3 text-sm text-green-700 font-bold"></div>
-    </div>
-
-    <!-- SIMPLE SEARCH (button) -->
-    <div class="bg-white p-4 rounded shadow mb-3">
-      <div class="flex gap-2">
-        <input id="adminSearch" type="text" placeholder="Search by Code or Name..." class="border p-2 w-full rounded" />
-        <button id="searchBtn" class="bg-blue-700 text-white px-4 py-2 rounded">Search</button>
-        <button id="resetSearchBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
-      </div>
-    </div>
-
-    <div class="bg-white p-5 rounded shadow">
-      <h3 class="text-lg font-bold mb-3">All Employees</h3>
-      <div class="overflow-x-auto">
-        <table class="w-full border">
-          <thead class="bg-gray-200">
-            <tr>
-              <th class="p-2">Code</th>
-              <th class="p-2">Name</th>
-              <th class="p-2">Dept</th>
-              <th class="p-2">Route</th>
-              <th class="p-2">Stop</th>
-              <th class="p-2">Pass Link</th>
-              <th class="p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody id="empTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== USER DASHBOARD / PASS ========== -->
-  <div id="userDashboard" class="page p-6">
-    <div class="max-w-md mx-auto bg-white p-6 shadow rounded">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-bold">Your Bus Pass</h2>
-        <button id="userLogoutBtn" class="bg-red-500 text-white px-3 py-1 rounded">Logout</button>
-      </div>
-
-      <!-- PASS CARD -->
-      <div id="passCard" class="pass-border bg-white">
-        <img src="Bajaj.png.png" class="w-20" alt="logo" />
-        <div class="text-center font-bold text-lg mb-0.2">BAL CH-1</div>
-        <div class="text-center font-bold text-lg mb-1">BUS PASS</div>
-        <div style="font-size:13px;line-height:1.6">
-          <div><span class="pass-label">Name:-</span> <span id="ticketName" class="pass-value"></span></div>
-          <div><span class="pass-label">Ticket Number:</span> <span id="ticketCode" class="pass-value"></span></div>
-          <div><span class="pass-label">Dept:</span> <span id="ticketDept" class="pass-value"></span></div>
-          <div><span class="pass-label">Bus Route:-</span> <span id="ticketRoute" class="pass-value"></span></div>
-          <div><span class="pass-label">Stop:-</span> <span id="ticketStop" class="pass-value"></span></div>
-          <div><span class="pass-label">Date of Issue:-</span> <span id="ticketDate" class="pass-value"></span></div>
-          <div><span class="pass-label">Emergency Gate Contact :-</span> <span id="ticketEmergency" class="pass-value">02135667051</span></div>
-           <div style="display:flex; justify-content:flex-end; margin-top:8px;">
-            <img src="sign.png.jpg" alt="signature" style="width:95px; opacity:0.95; object-fit:contain" />
+  <main class="max-w-4xl mx-auto pb-20">
+    
+    <div id="userLoginPage" class="page active p-4 md:p-8">
+      <div class="max-w-sm mx-auto glass-card p-8 rounded-2xl shadow-xl border border-gray-100">
+        <div class="text-center mb-6">
+          <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
           </div>
+          <h2 class="text-2xl font-bold">Welcome Back</h2>
+          <p class="text-slate-500 text-sm">Enter your credentials to access your pass</p>
+        </div>
+        <div class="space-y-4">
+          <input id="userCode" class="w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white" placeholder="Employee Code" />
+          <input id="userPass" class="w-full px-4 py-3 rounded-xl bg-gray-50 focus:bg-white" placeholder="Password" type="password" />
+          <button id="btnUserLogin" class="bg-blue-600 hover:bg-blue-700 text-white w-full py-3 rounded-xl font-bold shadow-lg shadow-blue-200 transition-all active:scale-95">Login to Dashboard</button>
+          <p id="userLoginMsg" class="text-center text-sm text-red-600 font-medium"></p>
         </div>
       </div>
+    </div>
 
-      <div class="mt-4 flex gap-2">
-        <button id="downloadPassBtn" class="bg-blue-700 text-white px-4 py-2 rounded w-full">Download Pass (PNG)</button>
-        <a id="officialPassImageLink" class="hidden bg-gray-700 text-white px-4 py-2 rounded inline-flex items-center" target="_blank" href="#">Open Original</a>
+    <div id="adminLoginPage" class="page p-4 md:p-8">
+      <div class="max-w-sm mx-auto glass-card p-8 rounded-2xl shadow-xl border border-gray-100">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          Admin Login
+        </h2>
+        <div class="space-y-4">
+          <input id="adminEmail" class="w-full px-4 py-3 rounded-xl bg-gray-50" placeholder="Admin Email" type="email" />
+          <input id="adminPassword" class="w-full px-4 py-3 rounded-xl bg-gray-50" placeholder="Password" type="password" />
+          <button id="btnAdminLogin" class="bg-slate-800 hover:bg-slate-900 text-white w-full py-3 rounded-xl font-bold transition-all">Sign In</button>
+          <p id="adminLoginMsg" class="text-sm text-red-600 font-medium"></p>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ================= JS ================= -->
+    <div id="adminPanel" class="page p-4 md:p-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h2 class="text-2xl font-bold text-slate-800">Admin Dashboard</h2>
+        <button id="btnSignOut" class="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-semibold text-sm transition-colors border border-red-100">Sign Out</button>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+        <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          Quick Add Employee
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input id="empCode" placeholder="Emp Code" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white" />
+          <input id="empName" placeholder="Full Name" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white" />
+          <input id="empDept" placeholder="Department" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white" />
+          <input id="empRoute" placeholder="Bus Route" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white" />
+          <input id="empStop" placeholder="Bus Stop" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white" />
+          <input id="empPassword" placeholder="Login Password" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white" type="password" />
+          <input id="empLink" placeholder="Pass URL (Optional)" class="px-4 py-2 rounded-lg bg-slate-50 border-transparent focus:bg-white md:col-span-3" />
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4">
+          <button id="saveBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">Save Employee</button>
+          <button id="clearBtn" class="bg-slate-200 text-slate-600 px-6 py-2 rounded-lg font-bold hover:bg-slate-300">Clear</button>
+          <button id="refreshBtn" class="bg-green-100 text-green-700 px-6 py-2 rounded-lg font-bold hover:bg-green-200">Refresh List</button>
+        </div>
+        <p id="saveMsg" class="text-sm text-green-600 mt-2 font-medium"></p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+        <h3 class="font-bold text-slate-700 mb-2">Bulk Excel Upload</h3>
+        <div class="flex flex-col md:flex-row gap-3 items-center">
+          <input type="file" id="excelFile" accept=".xlsx" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+          <button id="uploadExcelBtn" class="w-full md:w-auto bg-purple-600 text-white px-6 py-2 rounded-lg font-bold">Process File</button>
+        </div>
+        <div id="excelStatus" class="mt-2 text-xs text-slate-500 font-mono italic"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b flex gap-2">
+          <input id="adminSearch" type="text" placeholder="Search by name or code..." class="flex-1 px-4 py-2 rounded-lg border-slate-200 shadow-sm" />
+          <button id="searchBtn" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-medium">Search</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-bold">
+              <tr>
+                <th class="p-4">Employee</th>
+                <th class="p-4">Route/Stop</th>
+                <th class="p-4">Dept</th>
+                <th class="p-4">Pass</th>
+                <th class="p-4">Action</th>
+              </tr>
+            </thead>
+            <tbody id="empTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="userDashboard" class="page p-4 md:p-8">
+      <div class="max-w-md mx-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold text-slate-800">Your Identity Pass</h2>
+          <button id="userLogoutBtn" class="text-red-600 font-semibold text-sm hover:underline">Logout</button>
+        </div>
+
+        <div id="passCard" class="pass-border shadow-2xl rounded-sm">
+          <img src="Bajaj.png.png" class="w-20" alt="logo" />
+          <div class="text-center font-bold text-lg mb-0.2">BAL CH-1</div>
+          <div class="text-center font-bold text-lg mb-1">BUS PASS</div>
+          <div style="font-size:13px;line-height:1.6">
+            <div><span class="pass-label">Name:-</span> <span id="ticketName" class="pass-value"></span></div>
+            <div><span class="pass-label">Ticket Number:</span> <span id="ticketCode" class="pass-value"></span></div>
+            <div><span class="pass-label">Dept:</span> <span id="ticketDept" class="pass-value"></span></div>
+            <div><span class="pass-label">Bus Route:-</span> <span id="ticketRoute" class="pass-value"></span></div>
+            <div><span class="pass-label">Stop:-</span> <span id="ticketStop" class="pass-value"></span></div>
+            <div><span class="pass-label">Date of Issue:-</span> <span id="ticketDate" class="pass-value"></span></div>
+            <div><span class="pass-label">Emergency Gate Contact :-</span> <span id="ticketEmergency" class="pass-value">02135667051</span></div>
+             <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+              <img src="sign.png.jpg" alt="signature" style="width:95px; opacity:0.95; object-fit:contain" />
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 flex flex-col gap-3">
+          <button id="downloadPassBtn" class="bg-blue-700 hover:bg-blue-800 text-white px-6 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            Download Digital Pass
+          </button>
+          <a id="officialPassImageLink" class="hidden text-center text-blue-600 font-medium py-2" target="_blank" href="#">View High-Res Version</a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
   <script type="module">
     // ---------- Firebase config ----------
     const firebaseConfig = {
@@ -184,19 +195,28 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
-    // Pages mapping
     const pages = {
       userLogin: document.getElementById("userLoginPage"),
       adminLogin: document.getElementById("adminLoginPage"),
       adminPanel: document.getElementById("adminPanel"),
       userDashboard: document.getElementById("userDashboard")
     };
-    function showPageKey(k){ Object.values(pages).forEach(el => el.classList.remove("active")); pages[k].classList.add("active"); window.scrollTo({top:0,behavior:'smooth'}); }
+    
+    function showPageKey(k){ 
+      Object.values(pages).forEach(el => el.classList.remove("active")); 
+      pages[k].classList.add("active"); 
+      
+      // Update Navigation styling
+      document.getElementById("navUser").classList.remove("active");
+      document.getElementById("navAdmin").classList.remove("active");
+      if(k === 'userLogin' || k === 'userDashboard') document.getElementById("navUser").classList.add("active");
+      if(k === 'adminLogin' || k === 'adminPanel') document.getElementById("navAdmin").classList.add("active");
+      
+      window.scrollTo({top:0,behavior:'smooth'}); 
+    }
 
     document.getElementById("navUser").addEventListener("click",()=>showPageKey("userLogin"));
     document.getElementById("navAdmin").addEventListener("click",()=>showPageKey("adminLogin"));
-
-    showPageKey("userLogin");
 
     // ---------------- Admin Auth ----------------
     const adminEmailEl = document.getElementById("adminEmail");
@@ -243,45 +263,44 @@
 
       if(!code) return alert("Employee Code required");
       if(!name) return alert("Employee Name required");
-      if(!pass) return alert("Employee Password required (for user login)");
+      if(!pass) return alert("Employee Password required");
 
       const payload = { code, name, dept, route, stop, password: pass.toString().trim(), link: link || "" };
       await set(ref(db,"employees/"+code),payload).catch(err=>alert("Save failed: "+err.message));
-      saveMsg.innerText="Saved!";
+      saveMsg.innerText="✓ Successfully Saved!";
+      setTimeout(() => saveMsg.innerText="", 3000);
       clearForm(); loadEmployeeTable();
     });
 
     clearBtn.addEventListener("click", clearForm);
     refreshBtn.addEventListener("click", loadEmployeeTable);
-
-    function clearForm(){ empCodeEl.value=""; empNameEl.value=""; empDeptEl.value=""; empRouteEl.value=""; empStopEl.value=""; empPasswordEl.value=""; empLinkEl.value=""; saveMsg.innerText=""; }
+    function clearForm(){ empCodeEl.value=""; empNameEl.value=""; empDeptEl.value=""; empRouteEl.value=""; empStopEl.value=""; empPasswordEl.value=""; empLinkEl.value=""; }
 
     // ---------------- Load Employee Table ----------------
     const empTableBody = document.getElementById("empTableBody");
-    // Keep a cached array of loaded employees for flexibility (optional)
-    let loadedEmployees = [];
-
     function loadEmployeeTable(){
       const empRef = ref(db,"employees"); off(empRef);
-      empTableBody.innerHTML="<tr><td colspan='7' class='text-center p-4'>Loading...</td></tr>";
+      empTableBody.innerHTML="<tr><td colspan='5' class='text-center p-8 text-slate-400'>Loading database...</td></tr>";
       onValue(empRef, snapshot=>{
         empTableBody.innerHTML="";
-        loadedEmployees = [];
-        if(!snapshot.exists()){ empTableBody.innerHTML="<tr><td colspan='7' class='text-center p-4'>No employees found</td></tr>"; return; }
+        if(!snapshot.exists()){ empTableBody.innerHTML="<tr><td colspan='5' class='text-center p-8'>No records found</td></tr>"; return; }
         snapshot.forEach(childSnap=>{
           const e=childSnap.val();
-          loadedEmployees.push(e);
           const tr=document.createElement("tr");
-          tr.className="border-b";
+          tr.className="hover:bg-slate-50 transition-colors";
           tr.innerHTML=`
-            <td class="p-2 empCode">${escapeHtml(e.code)}</td>
-            <td class="p-2 empName">${escapeHtml(e.name)}</td>
-            <td class="p-2">${escapeHtml(e.dept||"")}</td>
-            <td class="p-2">${escapeHtml(e.route||"")}</td>
-            <td class="p-2">${escapeHtml(e.stop||"")}</td>
-            <td class="p-2">${e.link?`<a href="${escapeAttr(e.link)}" target="_blank" class="text-blue-600">Link</a>`:"-"}</td>
-            <td class="p-2">
-              <button class="bg-red-600 text-white px-2 py-1 rounded" data-code="${encodeURIComponent(e.code)}" data-action="delete">Delete</button>
+            <td class="p-4">
+              <div class="font-bold text-slate-800 empCode">${escapeHtml(e.code)}</div>
+              <div class="text-xs text-slate-500 empName">${escapeHtml(e.name)}</div>
+            </td>
+            <td class="p-4 text-sm">
+              <div class="font-medium">${escapeHtml(e.route||"N/A")}</div>
+              <div class="text-xs text-slate-400">${escapeHtml(e.stop||"-")}</div>
+            </td>
+            <td class="p-4 text-sm text-slate-600">${escapeHtml(e.dept||"")}</td>
+            <td class="p-4">${e.link?`<a href="${escapeAttr(e.link)}" target="_blank" class="text-blue-500 text-xs font-bold underline">VIEW</a>`:"-"}</td>
+            <td class="p-4">
+              <button class="text-red-500 hover:text-red-700 font-bold text-xs" data-code="${encodeURIComponent(e.code)}" data-action="delete">DELETE</button>
             </td>
           `;
           empTableBody.appendChild(tr);
@@ -289,8 +308,8 @@
         empTableBody.querySelectorAll("button[data-action='delete']").forEach(btn=>{
           btn.onclick=()=>{
             const code=decodeURIComponent(btn.getAttribute("data-code"));
-            if(!confirm("Delete employee "+code+" ?")) return;
-            remove(ref(db,"employees/"+code)).catch(err=>alert("Delete failed: "+err.message));
+            if(!confirm("Are you sure you want to delete "+code+"?")) return;
+            remove(ref(db,"employees/"+code));
           };
         });
       });
@@ -300,21 +319,18 @@
     const userCodeEl = document.getElementById("userCode");
     const userPassEl = document.getElementById("userPass");
     const userLoginMsg = document.getElementById("userLoginMsg");
-    const userLogoutBtn = document.getElementById("userLogoutBtn");
 
     document.getElementById("btnUserLogin").addEventListener("click", async()=>{
       userLoginMsg.innerText="";
       const code=userCodeEl.value.trim();
       const pass=userPassEl.value.trim();
-      if(!code||!pass){ userLoginMsg.innerText="Enter code & password"; return; }
+      if(!code||!pass){ userLoginMsg.innerText="Required: Code & Password"; return; }
 
       try{
         const snap=await get(child(ref(db),"employees/"+code));
         if(!snap.exists()){ userLoginMsg.innerText="Employee not found"; return; }
         const e=snap.val();
-        const storedPass=(e.password||"").toString().trim();
-        const enteredPass=pass.trim();
-        if(!storedPass || storedPass!==enteredPass){ userLoginMsg.innerText="Invalid password"; return; }
+        if(e.password.toString().trim() !== pass){ userLoginMsg.innerText="Invalid password"; return; }
 
         document.getElementById("ticketName").innerText=e.name||"";
         document.getElementById("ticketCode").innerText=e.code||"";
@@ -329,90 +345,73 @@
 
         userCodeEl.value=""; userPassEl.value="";
         showPageKey("userDashboard");
-      }catch(err){ console.error(err); userLoginMsg.innerText="Login failed"; }
+      }catch(err){ userLoginMsg.innerText="Network error"; }
     });
 
-    userLogoutBtn.addEventListener("click",()=>{ showPageKey("userLogin"); });
+    document.getElementById("userLogoutBtn").addEventListener("click",()=>showPageKey("userLogin"));
 
     // ---------------- Download pass ----------------
     document.getElementById("downloadPassBtn").addEventListener("click",()=>{
       const node=document.getElementById("passCard");
-      html2canvas(node,{scale:2}).then(canvas=>{
+      html2canvas(node,{scale:3, backgroundColor: null}).then(canvas=>{
         const link=document.createElement("a");
-        link.download=`${document.getElementById("ticketCode").innerText||"buspass"}.png`;
+        link.download=`Pass_${document.getElementById("ticketCode").innerText}.png`;
         link.href=canvas.toDataURL("image/png");
         link.click();
-      }).catch(err=>alert("Download failed: "+err));
+      });
     });
 
     // ---------------- Excel bulk upload ----------------
-    const uploadExcelBtn = document.getElementById("uploadExcelBtn");
     const excelStatus = document.getElementById("excelStatus");
-    uploadExcelBtn.addEventListener("click", async()=>{
-      const fileInput=document.getElementById("excelFile");
-      const file=fileInput.files[0];
-      if(!file) return alert("Please select an Excel (.xlsx) file");
-      excelStatus.innerText="Reading file...";
+    document.getElementById("uploadExcelBtn").addEventListener("click", async()=>{
+      const file = document.getElementById("excelFile").files[0];
+      if(!file) return alert("Select file");
+      excelStatus.innerText="Processing...";
       const reader=new FileReader();
       reader.onload=async(e)=>{
         try{
           const data=new Uint8Array(e.target.result);
           const workbook=XLSX.read(data,{type:"array"});
-          const sheetName=workbook.SheetNames[0];
-          const sheet=XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{defval:""});
-          if(!sheet.length){ excelStatus.innerText="Excel is empty"; return; }
-
-          let success=0, failed=0;
-          excelStatus.innerText=`Uploading ${sheet.length} rows...`;
-
-          const promises=sheet.map(row=>{
+          const sheet=XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{defval:""});
+          let success=0;
+          for(let row of sheet){
             const normalized={};
             Object.keys(row).forEach(k=>normalized[k.toString().trim().toLowerCase()]=row[k]);
-            const codeRaw=normalized.code;
-            const name=normalized.name||"";
-            const dept=normalized.dept||"";
-            const route=normalized.route||"";
-            const stop=normalized.stop||"";
-            const password=(normalized.password||"").toString().trim();
-            const link=normalized.link||"";
-            if(!codeRaw || !name || !password){ failed++; return Promise.resolve(); }
-            const code=codeRaw.toString().trim();
-            const payload={ code,name,dept,route,stop,password,link };
-            return set(ref(db,"employees/"+code),payload).then(()=>{ success++; }).catch(err=>{ console.error("Upload error",err); failed++; });
-          });
-          await Promise.all(promises);
-          excelStatus.innerText=`Uploaded: ${success} | Failed: ${failed}`;
+            if(normalized.code && normalized.name){
+              await set(ref(db,"employees/"+normalized.code), {
+                code: normalized.code.toString(),
+                name: normalized.name,
+                dept: normalized.dept || "",
+                route: normalized.route || "",
+                stop: normalized.stop || "",
+                password: (normalized.password || "123").toString(),
+                link: normalized.link || ""
+              });
+              success++;
+            }
+          }
+          excelStatus.innerText=`Done! Uploaded ${success} records.`;
           loadEmployeeTable();
-        }catch(err){ console.error(err); excelStatus.innerText="Failed to parse Excel file: "+err.message; }
+        } catch(err) { excelStatus.innerText="Error processing file"; }
       };
       reader.readAsArrayBuffer(file);
     });
 
-    // ---------------- Helpers ----------------
-    function pad(n){ return n<10?"0"+n:n; }
-    function escapeHtml(s){ if(s===undefined||s===null) return ""; return s.toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-    function escapeAttr(s){ if(!s) return ""; return s.toString().replaceAll('"','&quot;'); }
-
-    // ---------------- Simple Search (button) ----------------
+    // ---------------- Search Logic ----------------
     document.getElementById("searchBtn").addEventListener("click", ()=>{
-      const q = document.getElementById("adminSearch").value.trim().toLowerCase();
-      const rows = document.querySelectorAll("#empTableBody tr");
-      rows.forEach(row=>{
-        const code = row.querySelector(".empCode")?.innerText.toLowerCase() || "";
-        const name = row.querySelector(".empName")?.innerText.toLowerCase() || "";
-        row.style.display = (code.includes(q) || name.includes(q)) ? "" : "none";
+      const q = document.getElementById("adminSearch").value.toLowerCase();
+      document.querySelectorAll("#empTableBody tr").forEach(row=>{
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? "" : "none";
       });
     });
 
-    // Reset search: show all
-    document.getElementById("resetSearchBtn").addEventListener("click", ()=>{
-      document.getElementById("adminSearch").value = "";
-      document.querySelectorAll("#empTableBody tr").forEach(r=> r.style.display = "");
-    });
+    // Helpers
+    function pad(n){ return n<10?"0"+n:n; }
+    function escapeHtml(s){ if(!s) return ""; return s.toString().replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+    function escapeAttr(s){ if(!s) return ""; return s.toString().replace(/"/g,"&quot;"); }
 
-    // ---------------- Keep admin session if logged in ----------------
     onAuthStateChanged(auth,user=>{ if(user){ showPageKey("adminPanel"); loadEmployeeTable(); } });
-
   </script>
 </body>
 </html>
