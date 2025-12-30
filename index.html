@@ -46,7 +46,7 @@
     </div>
   </div>
 
-  <!-- ========== ADMIN LOGIN PAGE (Firebase Email+Password) ========== -->
+  <!-- ========== ADMIN LOGIN PAGE ========== -->
   <div id="adminLoginPage" class="page p-6">
     <div class="max-w-md mx-auto bg-white p-6 shadow rounded">
       <h2 class="text-lg font-bold mb-3">Admin Login (Firebase Auth)</h2>
@@ -63,7 +63,6 @@
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-bold">Admin Dashboard</h2>
       <div class="flex gap-2">
-        <button id="exportCsvBtn" class="bg-yellow-600 text-white px-3 py-2 rounded">Export CSV</button>
         <button id="btnSignOut" class="bg-red-600 text-white px-3 py-2 rounded">Sign out</button>
       </div>
     </div>
@@ -99,6 +98,15 @@
       <div id="excelStatus" class="mt-3 text-sm text-green-700 font-bold"></div>
     </div>
 
+    <!-- SIMPLE SEARCH (button) -->
+    <div class="bg-white p-4 rounded shadow mb-3">
+      <div class="flex gap-2">
+        <input id="adminSearch" type="text" placeholder="Search by Code or Name..." class="border p-2 w-full rounded" />
+        <button id="searchBtn" class="bg-blue-700 text-white px-4 py-2 rounded">Search</button>
+        <button id="resetSearchBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
+      </div>
+    </div>
+
     <div class="bg-white p-5 rounded shadow">
       <h3 class="text-lg font-bold mb-3">All Employees</h3>
       <div class="overflow-x-auto">
@@ -120,13 +128,10 @@
     </div>
   </div>
 
-  
-
-     <!-- ========== USER DASHBOARD / PASS ========== -->
+  <!-- ========== USER DASHBOARD / PASS ========== -->
   <div id="userDashboard" class="page p-6">
     <div class="max-w-md mx-auto bg-white p-6 shadow rounded">
       <div class="flex justify-between items-center mb-4">
-        
         <h2 class="text-lg font-bold">Your Bus Pass</h2>
         <button id="userLogoutBtn" class="bg-red-500 text-white px-3 py-1 rounded">Logout</button>
       </div>
@@ -145,36 +150,30 @@
           <div><span class="pass-label">Date of Issue:-</span> <span id="ticketDate" class="pass-value"></span></div>
           <div><span class="pass-label">Emergency Gate Contact :-</span> <span id="ticketEmergency" class="pass-value">02135667051</span></div>
            <div style="display:flex; justify-content:flex-end; margin-top:8px;">
-            <!-- Developer requested uploaded file path used here as signature/sample -->
             <img src="sign.png.jpg" alt="signature" style="width:95px; opacity:0.95; object-fit:contain" />
           </div>
         </div>
-        </div>
-          
       </div>
-      
 
       <div class="mt-4 flex gap-2">
         <button id="downloadPassBtn" class="bg-blue-700 text-white px-4 py-2 rounded w-full">Download Pass (PNG)</button>
         <a id="officialPassImageLink" class="hidden bg-gray-700 text-white px-4 py-2 rounded inline-flex items-center" target="_blank" href="#">Open Original</a>
-        
-          </div>
       </div>
     </div>
   </div>
 
   <!-- ================= JS ================= -->
   <script type="module">
+    // ---------- Firebase config ----------
     const firebaseConfig = {
-          apiKey: "AIzaSyA6xbGUg8A97-Bvs7yK7SOs9WMASeShmVA",
-  authDomain: "nothing2-ccfdc.firebaseapp.com",
-  databaseURL: "https://nothing2-ccfdc-default-rtdb.firebaseio.com",
-  projectId: "nothing2-ccfdc",
-  storageBucket: "nothing2-ccfdc.firebasestorage.app",
-  messagingSenderId: "26795199212",
-  appId: "1:26795199212:web:35389834d4c44a018533c9",
-  measurementId: "G-N0DYPHNNSL"
-      // <-- PASTE YOUR FIREBASE CONFIG OBJECT HERE
+      apiKey: "AIzaSyA6xbGUg8A97-Bvs7yK7SOs9WMASeShmVA",
+      authDomain: "nothing2-ccfdc.firebaseapp.com",
+      databaseURL: "https://nothing2-ccfdc-default-rtdb.firebaseio.com",
+      projectId: "nothing2-ccfdc",
+      storageBucket: "nothing2-ccfdc.firebasestorage.app",
+      messagingSenderId: "26795199212",
+      appId: "1:26795199212:web:35389834d4c44a018533c9",
+      measurementId: "G-N0DYPHNNSL"
     };
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -185,6 +184,7 @@
     const auth = getAuth(app);
     const db = getDatabase(app);
 
+    // Pages mapping
     const pages = {
       userLogin: document.getElementById("userLoginPage"),
       adminLogin: document.getElementById("adminLoginPage"),
@@ -258,19 +258,24 @@
 
     // ---------------- Load Employee Table ----------------
     const empTableBody = document.getElementById("empTableBody");
+    // Keep a cached array of loaded employees for flexibility (optional)
+    let loadedEmployees = [];
+
     function loadEmployeeTable(){
       const empRef = ref(db,"employees"); off(empRef);
       empTableBody.innerHTML="<tr><td colspan='7' class='text-center p-4'>Loading...</td></tr>";
       onValue(empRef, snapshot=>{
         empTableBody.innerHTML="";
+        loadedEmployees = [];
         if(!snapshot.exists()){ empTableBody.innerHTML="<tr><td colspan='7' class='text-center p-4'>No employees found</td></tr>"; return; }
         snapshot.forEach(childSnap=>{
           const e=childSnap.val();
+          loadedEmployees.push(e);
           const tr=document.createElement("tr");
           tr.className="border-b";
           tr.innerHTML=`
-            <td class="p-2">${escapeHtml(e.code)}</td>
-            <td class="p-2">${escapeHtml(e.name)}</td>
+            <td class="p-2 empCode">${escapeHtml(e.code)}</td>
+            <td class="p-2 empName">${escapeHtml(e.name)}</td>
             <td class="p-2">${escapeHtml(e.dept||"")}</td>
             <td class="p-2">${escapeHtml(e.route||"")}</td>
             <td class="p-2">${escapeHtml(e.stop||"")}</td>
@@ -383,40 +388,31 @@
       reader.readAsArrayBuffer(file);
     });
 
+    // ---------------- Helpers ----------------
     function pad(n){ return n<10?"0"+n:n; }
     function escapeHtml(s){ if(s===undefined||s===null) return ""; return s.toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
     function escapeAttr(s){ if(!s) return ""; return s.toString().replaceAll('"','&quot;'); }
 
+    // ---------------- Simple Search (button) ----------------
+    document.getElementById("searchBtn").addEventListener("click", ()=>{
+      const q = document.getElementById("adminSearch").value.trim().toLowerCase();
+      const rows = document.querySelectorAll("#empTableBody tr");
+      rows.forEach(row=>{
+        const code = row.querySelector(".empCode")?.innerText.toLowerCase() || "";
+        const name = row.querySelector(".empName")?.innerText.toLowerCase() || "";
+        row.style.display = (code.includes(q) || name.includes(q)) ? "" : "none";
+      });
+    });
+
+    // Reset search: show all
+    document.getElementById("resetSearchBtn").addEventListener("click", ()=>{
+      document.getElementById("adminSearch").value = "";
+      document.querySelectorAll("#empTableBody tr").forEach(r=> r.style.display = "");
+    });
+
+    // ---------------- Keep admin session if logged in ----------------
     onAuthStateChanged(auth,user=>{ if(user){ showPageKey("adminPanel"); loadEmployeeTable(); } });
-    // ---------------- EXPORT CSV BUTTON ----------------
-document.getElementById("exportCsvBtn").addEventListener("click", async () => {
-  const empRef = ref(db, "employees");
-  const snap = await get(empRef);
-
-  if (!snap.exists()) {
-    alert("No employee data found!");
-    return;
-  }
-
-  let csv = "Code,Name,Dept,Route,Stop,Password,Link\n";
-
-  snap.forEach(child => {
-    const e = child.val();
-    csv += `"${e.code || ""}","${e.name || ""}","${e.dept || ""}","${e.route || ""}","${e.stop || ""}","${e.password || ""}","${e.link || ""}"\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "employees.csv";
-  a.click();
-
-  URL.revokeObjectURL(url);
-});
 
   </script>
 </body>
 </html>
-
